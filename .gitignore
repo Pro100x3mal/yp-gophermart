@@ -21,3 +21,8 @@ vendor/
 # IDEs directories
 .idea
 .vscode
+
+/.env
+/gophermarttest
+/docker-compose.yaml
+/run_tests.txt
