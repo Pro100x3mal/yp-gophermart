@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (db *DB) Create(ctx context.Context, login string, passHash []byte) (int64, error) {
+func (db *DB) CreateUser(ctx context.Context, login string, passHash []byte) (int64, error) {
 	query := `
 		INSERT INTO users (login, password_hash)
 		VALUES ($1, $2)
@@ -31,15 +31,34 @@ func (db *DB) Create(ctx context.Context, login string, passHash []byte) (int64,
 	return id, nil
 }
 
-func (db *DB) GetByLogin(ctx context.Context, login string) (*models.User, error) {
+func (db *DB) GetUserByLogin(ctx context.Context, login string) (*models.User, error) {
 	query := `
-		SELECT id, login, password_hash, EXTRACT(EPOCH FROM created_at)::BIGINT AS created_at
+		SELECT id, login, password_hash, created_at
 		FROM users
 		WHERE login = $1
 	`
 
 	var u models.User
 	if err := db.pool.QueryRow(ctx, query, login).Scan(&u.ID, &u.Login, &u.PasswordHash, &u.CreatedAt); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+			return nil, err
+		}
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, models.ErrUserNotFound
+		}
+		return nil, fmt.Errorf("database error: failed to get user: %w", err)
+	}
+	return &u, nil
+}
+
+func (db *DB) GetUserByID(ctx context.Context, id int64) (*models.User, error) {
+	query := `
+		SELECT id, login, password_hash, created_at
+		FROM users
+		WHERE id = $1
+	`
+	var u models.User
+	if err := db.pool.QueryRow(ctx, query, id).Scan(&u.ID, &u.Login, &u.PasswordHash, &u.CreatedAt); err != nil {
 		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
 			return nil, err
 		}

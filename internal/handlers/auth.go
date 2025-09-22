@@ -13,22 +13,22 @@ import (
 )
 
 type AuthService interface {
-	Register(ctx context.Context, creds *models.Creds) (string, error)
-	Authenticate(ctx context.Context, creds *models.Creds) (string, error)
+	RegisterUser(ctx context.Context, creds *models.Creds) (string, error)
+	AuthenticateUser(ctx context.Context, creds *models.Creds) (string, error)
 }
-type UserHandler struct {
+type AuthHandler struct {
 	authSvc AuthService
 	logger  *zap.Logger
 }
 
-func NewUserHandler(authSvc AuthService, logger *zap.Logger) *UserHandler {
-	return &UserHandler{
+func NewAuthHandler(authSvc AuthService, logger *zap.Logger) *AuthHandler {
+	return &AuthHandler{
 		authSvc: authSvc,
-		logger:  logger,
+		logger:  logger.With(zap.String("handler", "auth")),
 	}
 }
 
-func (uh *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
+func (ah *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
@@ -45,13 +45,20 @@ func (uh *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := uh.authSvc.Register(r.Context(), &c)
+	token, err := ah.authSvc.RegisterUser(r.Context(), &c)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return
+		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			http.Error(w, http.StatusText(http.StatusRequestTimeout), http.StatusRequestTimeout)
+			return
+		}
 		if errors.Is(err, models.ErrUserAlreadyExists) {
 			http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
 			return
 		}
-		uh.logger.Error("failed to register user", zap.Error(err))
+		ah.logger.Error("failed to register user", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -60,7 +67,7 @@ func (uh *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (uh *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (ah *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
@@ -77,13 +84,20 @@ func (uh *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := uh.authSvc.Authenticate(r.Context(), &c)
+	token, err := ah.authSvc.AuthenticateUser(r.Context(), &c)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return
+		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			http.Error(w, http.StatusText(http.StatusRequestTimeout), http.StatusRequestTimeout)
+			return
+		}
 		if errors.Is(err, models.ErrUserNotFound) || errors.Is(err, models.ErrInvalidCredentials) {
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
-		uh.logger.Error("failed to authenticate user", zap.Error(err))
+		ah.logger.Error("failed to authenticate user", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}

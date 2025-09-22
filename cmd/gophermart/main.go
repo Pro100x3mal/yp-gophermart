@@ -16,11 +16,11 @@ import (
 )
 
 func main() {
-	mainLogger := zap.NewExample()
-	defer mainLogger.Sync()
+	mainLog := zap.NewExample()
+	defer mainLog.Sync()
 
 	if err := run(); err != nil {
-		mainLogger.Fatal("application failed:", zap.Error(err))
+		mainLog.Fatal("application failed:", zap.Error(err))
 	}
 }
 
@@ -28,7 +28,10 @@ func run() error {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	cfg := configs.GetConfig()
+	cfg, err := configs.GetConfig()
+	if err != nil {
+		return fmt.Errorf("failed to get config: %w", err)
+	}
 
 	zLog, err := logger.NewLogger(cfg)
 	if err != nil {
@@ -37,8 +40,8 @@ func run() error {
 	defer zLog.Sync()
 
 	dbLog := zLog.Named("database")
-	srvLog := zLog.Named("server")
 	httpLog := zLog.Named("http")
+	srvLog := zLog.Named("server")
 
 	repo, err := repositories.NewDB(ctx, cfg, dbLog)
 	if err != nil {
@@ -47,9 +50,15 @@ func run() error {
 	}
 	defer repo.Close()
 
-	authSvc := services.NewAuthService(repo, cfg)
-	userHandler := handlers.NewUserHandler(authSvc, httpLog)
-	router := handlers.NewRouter(userHandler)
+	jwtMgr := services.NewJWTManager(cfg)
+
+	authSvc := services.NewAuthService(repo, jwtMgr)
+	authH := handlers.NewAuthHandler(authSvc, httpLog)
+
+	ordersSvc := services.NewOrdersService(repo)
+	ordersH := handlers.NewOrdersHandler(ordersSvc, httpLog)
+
+	router := handlers.NewRouter(httpLog, jwtMgr, authH, ordersH)
 
 	if err = httpserver.StartServer(ctx, cfg, router, srvLog); err != nil {
 		srvLog.Error("server failed", zap.Error(err))

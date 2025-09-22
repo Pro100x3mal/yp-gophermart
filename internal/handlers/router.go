@@ -1,18 +1,26 @@
 package handlers
 
 import (
+	"github.com/Pro100x3mal/yp-gophermart.git/internal/infrastructure/http/middleware"
+	"github.com/Pro100x3mal/yp-gophermart.git/internal/services"
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
-func NewRouter(uh *UserHandler) *chi.Mux {
+func NewRouter(logger *zap.Logger, validator *services.JWTManager, ah *AuthHandler, oh *OrdersHandler) *chi.Mux {
 	r := chi.NewRouter()
-	initRoutes(r, uh)
-	return r
-}
+	r.Use(middleware.Logger(logger))
+	r.Use(middleware.Compress(logger))
 
-func initRoutes(r *chi.Mux, uh *UserHandler) {
 	r.Route("/api/user", func(r chi.Router) {
-		r.Post("/register", uh.Register)
-		r.Post("/login", uh.Login)
+		r.Post("/register", ah.Register)
+		r.Post("/login", ah.Login)
+
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Auth(logger, validator))
+			r.Post("/orders", oh.CreateOrder)
+		})
 	})
+
+	return r
 }

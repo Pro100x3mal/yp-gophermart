@@ -1,12 +1,15 @@
 package models
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 type User struct {
-	ID           int64
-	Login        string
-	PasswordHash []byte
-	CreatedAt    int64
+	ID           int64     `json:"-"`
+	Login        string    `json:"login"`
+	PasswordHash []byte    `json:"-"`
+	CreatedAt    time.Time `json:"-"`
 }
 
 var (
