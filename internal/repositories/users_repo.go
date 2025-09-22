@@ -15,7 +15,7 @@ func (db *DB) CreateUser(ctx context.Context, login string, passHash []byte) (in
 		VALUES ($1, $2)
 		ON CONFLICT (login) DO NOTHING
 		RETURNING id
-`
+	`
 
 	var id int64
 	if err := db.pool.QueryRow(ctx, query, login, passHash).Scan(&id); err != nil {

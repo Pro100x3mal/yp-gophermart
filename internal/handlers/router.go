@@ -19,6 +19,7 @@ func NewRouter(logger *zap.Logger, validator *services.JWTManager, ah *AuthHandl
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(logger, validator))
 			r.Post("/orders", oh.CreateOrder)
+			r.Get("/orders", oh.GetOrders)
 		})
 	})
 

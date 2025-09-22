@@ -11,6 +11,7 @@ import (
 type OrdersRepository interface {
 	InsertOrder(ctx context.Context, userID int64, num string) error
 	GetOrderOwnerID(ctx context.Context, num string) (int64, error)
+	GetOrdersByUserID(ctx context.Context, userID int64) ([]models.Order, error)
 }
 
 type OrdersService struct {
@@ -38,4 +39,12 @@ func (os *OrdersService) LoadOrder(ctx context.Context, userID int64, num string
 		return fmt.Errorf("failed to load order: %w", err)
 	}
 	return nil
+}
+
+func (os *OrdersService) ListOrders(ctx context.Context, userID int64) ([]models.Order, error) {
+	orders, err := os.repo.GetOrdersByUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get orders by user_id: %w", err)
+	}
+	return orders, nil
 }
