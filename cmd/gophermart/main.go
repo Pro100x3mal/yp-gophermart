@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -73,45 +74,57 @@ func run() error {
 
 	wp := worker.NewWorkerPool(cfg.RateLimit)
 	wp.Start()
+	defer wp.Stop()
 
-	go func() {
-		ticker := time.NewTicker(cfg.PollInterval)
-		defer ticker.Stop()
-		var sleepUntil time.Time
-
-		for {
-			select {
-			case <-ctx.Done():
-				wp.Stop()
-				return
-			case <-ticker.C:
-				if sleepUntil.IsZero() && time.Now().Before(sleepUntil) {
-					continue
-				}
-				wp.Submit(func() {
-					processed, retryAfter, err := accrualSvc.PollAndUpdate(ctx)
-					if err != nil {
-						clientLog.Warn("accrual poll failed", zap.Error(err))
-						return
-					}
-					if retryAfter > 0 {
-						clientLog.Debug("retrying accrual poll", zap.Duration("retry_after", retryAfter))
-						sleepUntil = time.Now().Add(retryAfter)
-						return
-					}
-					if processed == 0 {
-						clientLog.Debug("no orders to process")
-						return
-					}
-					clientLog.Debug("accrual poll updated", zap.Int("processed", processed))
-				})
-			}
-		}
-	}()
+	go startAccrualPoller(ctx, wp, accrualSvc, cfg.PollInterval, clientLog)
 
 	if err = httpserver.StartServer(ctx, cfg.RunAddr, router, srvLog); err != nil {
 		srvLog.Error("server failed", zap.Error(err))
 	}
 
 	return err
+}
+
+func startAccrualPoller(ctx context.Context, wp *worker.WorkerPool, svc *services.AccrualService, d time.Duration, cLog *zap.Logger) {
+	ticker := time.NewTicker(d)
+	defer ticker.Stop()
+	var (
+		sleepUntil time.Time
+		mu         sync.Mutex
+	)
+
+	for {
+		select {
+		case <-ctx.Done():
+			cLog.Debug("stopping accrual poller")
+			return
+		case <-ticker.C:
+			mu.Lock()
+			shouldSleep := !sleepUntil.IsZero() && time.Now().Before(sleepUntil)
+			mu.Unlock()
+			if shouldSleep {
+				continue
+			}
+
+			wp.Submit(func() {
+				processed, retryAfter, err := svc.PollAndUpdate(ctx)
+				if err != nil {
+					cLog.Warn("accrual poll failed", zap.Error(err))
+					return
+				}
+				if retryAfter > 0 {
+					cLog.Debug("retrying accrual poll", zap.Duration("retry_after", retryAfter))
+					mu.Lock()
+					sleepUntil = time.Now().Add(retryAfter)
+					mu.Unlock()
+					return
+				}
+				if processed == 0 {
+					cLog.Debug("no orders to process")
+					return
+				}
+				cLog.Debug("accrual poll updated", zap.Int("processed", processed))
+			})
+		}
+	}
 }
