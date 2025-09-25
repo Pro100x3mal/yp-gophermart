@@ -5,14 +5,6 @@ import (
 	"time"
 )
 
-const (
-	StatusRegistered = "REGISTERED"
-	StatusInvalid    = "INVALID"
-	StatusProcessing = "PROCESSING"
-	StatusProcessed  = "PROCESSED"
-	StatusNew        = "NEW"
-)
-
 type Creds struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
@@ -40,20 +32,11 @@ type AccrualResp struct {
 	Accrual float64 `json:"accrual,omitempty"`
 }
 
-var (
-	ErrAccrualOrderNotRegistered = errors.New("order not registered in accrual system")
-	ErrAccrualOrderTooMany       = errors.New("too many requests to accrual system")
-)
-
 type Withdrawal struct {
 	Order       string    `json:"order"`
 	Sum         float64   `json:"sum"`
 	ProcessedAt time.Time `json:"processed_at"`
 }
-
-var (
-	ErrWithdrawalOrderExists = errors.New("order already exists")
-)
 
 type Balance struct {
 	Current   float64 `json:"current"`
@@ -65,8 +48,12 @@ type WithdrawReq struct {
 	Sum   float64 `json:"sum"`
 }
 
-var (
-	ErrPaymentRequired = errors.New("payment required")
+const (
+	StatusRegistered = "REGISTERED"
+	StatusInvalid    = "INVALID"
+	StatusProcessing = "PROCESSING"
+	StatusProcessed  = "PROCESSED"
+	StatusNew        = "NEW"
 )
 
 var (
@@ -78,4 +65,10 @@ var (
 	ErrOrderNotFound                  = errors.New("order not found")
 	ErrOrderBelongsToAnotherUser      = errors.New("order belongs to another user")
 	ErrOrderAlreadyUploadedBySameUser = errors.New("order already uploaded by same user")
+
+	ErrAccrualOrderNotRegistered = errors.New("order not registered in accrual system")
+	ErrAccrualOrderTooMany       = errors.New("too many requests to accrual system")
+
+	ErrWithdrawalOrderExists = errors.New("order already exists")
+	ErrPaymentRequired       = errors.New("payment required")
 )
