@@ -93,7 +93,7 @@ func (ah *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(http.StatusRequestTimeout), http.StatusRequestTimeout)
 			return
 		}
-		if errors.Is(err, models.ErrUserNotFound) || errors.Is(err, models.ErrInvalidCredentials) {
+		if errors.Is(err, models.ErrUserNotFound) || errors.Is(err, models.ErrUserInvalidCredentials) {
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}

@@ -26,3 +26,4 @@ vendor/
 /gophermarttest
 /docker-compose.yaml
 /run_tests.txt
+/todo.md

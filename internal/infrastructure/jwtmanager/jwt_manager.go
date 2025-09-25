@@ -1,10 +1,9 @@
-package services
+package jwtmanager
 
 import (
 	"strconv"
 	"time"
 
-	"github.com/Pro100x3mal/yp-gophermart.git/internal/configs"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -13,10 +12,10 @@ type JWTManager struct {
 	ttl    time.Duration
 }
 
-func NewJWTManager(cfg *configs.ServerConfig) *JWTManager {
+func NewJWTManager(secret string, ttl time.Duration) *JWTManager {
 	return &JWTManager{
-		secret: cfg.Secret,
-		ttl:    cfg.TokenTTL,
+		secret: secret,
+		ttl:    ttl,
 	}
 }
 

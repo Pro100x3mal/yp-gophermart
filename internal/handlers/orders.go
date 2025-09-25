@@ -7,9 +7,9 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"unicode"
 
-	"github.com/Pro100x3mal/yp-gophermart.git/internal/infrastructure/http/middleware"
+	"github.com/Pro100x3mal/yp-gophermart.git/internal/infrastructure/middleware"
+	"github.com/Pro100x3mal/yp-gophermart.git/internal/infrastructure/validate"
 	"github.com/Pro100x3mal/yp-gophermart.git/internal/models"
 	"go.uber.org/zap"
 )
@@ -51,7 +51,7 @@ func (oh *OrdersHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	number := strings.TrimSpace(string(body))
-	if number == "" || !validLuhn(number) {
+	if number == "" || !validate.ValidLuhn(number) {
 		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
 		return
 	}
@@ -74,6 +74,7 @@ func (oh *OrdersHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		}
 		oh.logger.Error("failed to load order", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
 	}
 	w.WriteHeader(http.StatusAccepted)
 }
@@ -107,26 +108,6 @@ func (oh *OrdersHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 	if err = json.NewEncoder(w).Encode(orders); err != nil {
 		oh.logger.Error("failed to encode orders", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
 	}
-}
-
-func validLuhn(number string) bool {
-	var sum int
-	double := false
-	for i := len(number) - 1; i >= 0; i-- {
-		r := rune(number[i])
-		if !unicode.IsDigit(r) {
-			return false
-		}
-		digit := int(r - '0')
-		if double {
-			digit *= 2
-			if digit > 9 {
-				digit -= 9
-			}
-		}
-		sum += digit
-		double = !double
-	}
-	return sum%10 == 0
 }

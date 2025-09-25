@@ -54,7 +54,7 @@ func (as *AuthService) AuthenticateUser(ctx context.Context, creds *models.Creds
 	}
 
 	if err = checkPasswordHash(user.PasswordHash, creds.Password); err != nil {
-		return "", models.ErrInvalidCredentials
+		return "", models.ErrUserInvalidCredentials
 	}
 
 	token, err := as.tokens.Generate(user.ID)

@@ -6,18 +6,17 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Pro100x3mal/yp-gophermart.git/internal/configs"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
 
-func StartServer(ctx context.Context, cfg *configs.ServerConfig, r *chi.Mux, logger *zap.Logger) error {
+func StartServer(ctx context.Context, addr string, r *chi.Mux, logger *zap.Logger) error {
 	srv := &http.Server{
-		Addr:    cfg.RunAddr,
+		Addr:    addr,
 		Handler: r,
 	}
 
-	logger.Info("starting server...", zap.String("address", cfg.RunAddr))
+	logger.Info("starting server...", zap.String("address", addr))
 
 	errCh := make(chan error, 1)
 	go func() {

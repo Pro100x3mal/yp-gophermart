@@ -51,21 +51,21 @@ func (db *DB) GetUserByLogin(ctx context.Context, login string) (*models.User, e
 	return &u, nil
 }
 
-func (db *DB) GetUserByID(ctx context.Context, id int64) (*models.User, error) {
-	query := `
-		SELECT id, login, password_hash, created_at
-		FROM users
-		WHERE id = $1
-	`
-	var u models.User
-	if err := db.pool.QueryRow(ctx, query, id).Scan(&u.ID, &u.Login, &u.PasswordHash, &u.CreatedAt); err != nil {
-		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
-			return nil, err
-		}
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, models.ErrUserNotFound
-		}
-		return nil, fmt.Errorf("database error: failed to get user: %w", err)
-	}
-	return &u, nil
-}
+//func (db *DB) GetUserByID(ctx context.Context, id int64) (*models.User, error) {
+//	query := `
+//		SELECT id, login, password_hash, created_at
+//		FROM users
+//		WHERE id = $1
+//	`
+//	var u models.User
+//	if err := db.pool.QueryRow(ctx, query, id).Scan(&u.ID, &u.Login, &u.PasswordHash, &u.CreatedAt); err != nil {
+//		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+//			return nil, err
+//		}
+//		if errors.Is(err, pgx.ErrNoRows) {
+//			return nil, models.ErrUserNotFound
+//		}
+//		return nil, fmt.Errorf("database error: failed to get user: %w", err)
+//	}
+//	return &u, nil
+//}
