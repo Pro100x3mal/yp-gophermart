@@ -32,14 +32,19 @@ go run ./cmd/gophermart
 
 ### Флаги командной строки и переменные окружения
 
-| Флаг | Переменная | Тип | По умолчанию | Описание |
+Переменные окружения имеют приоритет над флагами.
+
+| Флаг | Переменная окружения | Тип | Значение по умолчанию | Описание |
 |---|---|---|---|---|
 | -l | LOG_LEVEL | string | info | Уровень логирования (info, debug, warn, error) |
 | -a | RUN_ADDRESS | string | localhost:8080 | Адрес HTTP‑сервера (host:port) |
-| -d | DATABASE_URI | string | — | DSN PostgreSQL (обязателен для работы с БД) |
+| -d | DATABASE_URI | string | — | DSN PostgreSQL (обязателен) |
 | -r | ACCRUAL_SYSTEM_ADDRESS | string | — | Адрес внешней системы начислений |
 | -s | SECRET | string | development-secret-change-me | Секретный ключ для JWT |
-| -t | TOKEN_TTL | int (часы) | 24 | Время жизни токена в часах |
+| -b | BATCH_SIZE | int | 10 | Размер батча запросов к accrual |
+| -n | RATE_LIMIT | int | 5 | Лимит запросов/сек к accrual |
+| -t | TOKEN_TTL | int (часы) | 24 | Время жизни JWT |
+| -i | POLL_INTERVAL | int (секунды) | 1 | Интервал опроса accrual воркером (сек) |
 
 Пример запуска с флагами:
 ```shell script
